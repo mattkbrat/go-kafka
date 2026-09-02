@@ -17,7 +17,9 @@ func Test_healthz(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	h := &handler{}
+	h := &handler{
+		writer: nil,
+	}
 
 	if assert.NoError(t, h.healthz(c)) {
 
