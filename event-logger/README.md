@@ -1,0 +1,2 @@
+- Go producer that emits fake user events to a Kafka topic
+- Go consumer reads them and streams rows into BigQuery
