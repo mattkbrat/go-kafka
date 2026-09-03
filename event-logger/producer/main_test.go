@@ -1,6 +1,7 @@
 package main
 
 import (
+	"event-logger/handlers"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -17,11 +18,11 @@ func Test_healthz(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	h := &handler{
-		writer: nil,
+	h := &handlers.Handler{
+		Writer: nil,
 	}
 
-	if assert.NoError(t, h.healthz(c)) {
+	if assert.NoError(t, h.Healthz(c)) {
 
 		assert.Equal(t, http.StatusOK, rec.Code)
 	}
