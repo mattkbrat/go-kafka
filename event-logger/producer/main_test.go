@@ -5,35 +5,17 @@ import (
 	"encoding/json/v2"
 	"event-logger/handlers"
 	"event-logger/internal/data"
+	"event-logger/internal/lib"
+	"io"
 	"log"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/labstack/echo/v5"
 	"github.com/stretchr/testify/assert"
 )
-
-// Source - https://stackoverflow.com/a/31832326
-// Posted by icza, modified by community. See post 'Timeline' for change history
-// Retrieved 2026-09-03, License - CC BY-SA 4.0
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func RandStringRunes(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
-}
 
 func Test_healthz(t *testing.T) {
 	e := echo.New()
@@ -53,6 +35,7 @@ func Test_healthz(t *testing.T) {
 }
 
 func Test_Register(t *testing.T) {
+
 	e := echo.New()
 
 	endpoint := "/auth/register"
@@ -71,11 +54,11 @@ func Test_Register(t *testing.T) {
 		}
 	}
 
-	u := data.UserType{
+	u := data.UserParams{
 		Name:     "John Doe",
-		Username: RandStringRunes(8),
+		Username: lib.RandStringRunes(8),
 		Email:    "doej@example.com",
-		Password: RandStringRunes(12),
+		Password: lib.RandStringRunes(12),
 	}
 
 	marshaled, err := json.Marshal(u)
@@ -90,13 +73,76 @@ func Test_Register(t *testing.T) {
 		log.Fatalf("Failed to build request: %s", err)
 	}
 
+	// Expected authorization flow
 	{
 		// Expects created
-		rec := httptest.NewRecorder()
-		c := e.NewContext(req, rec)
-		if assert.NoError(t, h.Register(c)) {
-			assert.Equal(t, http.StatusCreated, rec.Code)
+		{
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+			if assert.NoError(t, h.Register(c)) {
+				assert.Equal(t, http.StatusCreated, rec.Code)
+			}
 		}
+
+		authorization := ""
+
+		// Can Login
+		{
+			req, err := http.NewRequest(http.MethodPost, "/auth/login", bytes.NewReader(marshaled))
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			if err != nil {
+				log.Fatalf("Failed to build request: %s", err)
+			}
+
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+
+			if assert.NoError(t, h.Login(c)) {
+				assert.Equal(t, http.StatusOK, rec.Code)
+
+				r := rec.Result()
+
+				for _, a := range r.Cookies() {
+					if a.Name == "authorization" {
+						authorization = a.Value
+						break
+					}
+				}
+			}
+
+			// gets session
+			{
+				assert.True(t, len(authorization) > 0)
+				req, err := http.NewRequest(http.MethodPost, "/auth/me", bytes.NewReader([]byte{}))
+				req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+				cookie := new(http.Cookie{
+					Name:  "authorization",
+					Value: authorization,
+				})
+				req.AddCookie(cookie)
+				if err != nil {
+					log.Fatalf("Failed to build request: %s", err)
+				}
+
+				rec := httptest.NewRecorder()
+				c := e.NewContext(req, rec)
+
+				if assert.NoError(t, h.Me(c)) {
+					assert.Equal(t, http.StatusOK, rec.Code)
+					assert.NotEmpty(t, rec.Body.String())
+					foundUser := data.UserParams{}
+
+					r := rec.Result()
+					body, _ := io.ReadAll(r.Body)
+					json.Unmarshal(body, &foundUser)
+
+					assert.Equal(t, u.Username, foundUser.Username)
+				}
+
+			}
+
+		}
+
 	}
 
 	{
@@ -107,5 +153,4 @@ func Test_Register(t *testing.T) {
 			assert.Equal(t, http.StatusBadRequest, rec.Code)
 		}
 	}
-
 }

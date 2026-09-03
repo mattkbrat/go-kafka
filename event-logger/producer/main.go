@@ -38,7 +38,9 @@ func main() {
 	}
 
 	e.GET("/healthz", h.Healthz)
-	health := e.Group("/auth")
-	health.POST("/register", h.Register)
+	auth := e.Group("/auth")
+	auth.POST("/register", h.Register)
+	auth.POST("/login", h.Login)
+	auth.POST("/me", h.Me)
 	e.Start(":1323")
 }
