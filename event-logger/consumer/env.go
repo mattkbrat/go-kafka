@@ -1,4 +1,39 @@
 package main
 
+import (
+	"encoding/json"
+	"log"
+	"os"
+)
+
 var KafkaRoute = "localhost:9092"
 var KafkaPartition = 0
+
+type Gcp struct {
+	ProviderCertUrl string `json:"auth_provider_x509_cert_url"`
+	AuthUri         string `json:"auth_uri"`
+	ClientEmail     string `json:"client_email"`
+	ClientId        string `json:"client_id"`
+	ClientCertUrl   string `json:"client_x509_cert_url"`
+	PrivateKey      string `json:"private_key"`
+	PrivateKeyId    string `json:"private_key_id"`
+	ProjectId       string `json:"project_id"`
+	TokenUri        string `json:"token_uri"`
+	Type            string `json:"type"`
+	Domain          string `json:"universe_domain"`
+}
+
+func ReadGcpConfig(file string) Gcp {
+	configFile, err := os.Open(file)
+	if err != nil {
+		log.Fatalf("failed to read config file %s", err.Error())
+	}
+
+	gcp := Gcp{}
+	jsonParser := json.NewDecoder(configFile)
+	if err = jsonParser.Decode(&gcp); err != nil {
+		log.Fatalf("failed to parse config file %s", err.Error())
+	}
+
+	return gcp
+}
