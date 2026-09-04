@@ -4,6 +4,8 @@ import (
 	"context"
 	"event-logger/handlers"
 	"event-logger/internal/status"
+	"log"
+	"os"
 	"os/signal"
 	"syscall"
 
@@ -22,11 +24,14 @@ func main() {
 
 	s := status.New()
 
-	writer := GetKafkaWriter(ctx, s, &KafkaArgs{
-		Url:       KafkaRoute,
-		Topic:     "events",
-		Partition: 0,
-	})
+	configFile := os.Getenv("CONFIG_FILE")
+	if configFile == "" {
+		log.Fatal("Must provide CONFIG_FILE env variable")
+	}
+
+	config := ReadConfig(configFile)
+
+	writer := GetKafkaWriter(ctx, s, &config.Kafka)
 
 	e := echo.New()
 	e.GET("/", func(c *echo.Context) error {

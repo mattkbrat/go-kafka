@@ -10,13 +10,6 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-type KafkaArgs struct {
-	Url       string
-	Topic     string
-	GroupId   string
-	Partition int
-}
-
 func timeIn(name string) time.Time {
 	loc, err := time.LoadLocation(name)
 	if err != nil {
@@ -28,7 +21,7 @@ func timeIn(name string) time.Time {
 func ProcessMessage(
 	ctx context.Context,
 	s *status.KafkaStatus,
-	args *KafkaArgs,
+	args *KafkaConfig,
 ) {
 
 	conn := getKafkaReader(args)
@@ -69,6 +62,7 @@ func ProcessMessage(
 			if backoff < 30*time.Second {
 				backoff *= 20
 			}
+			time.Sleep(backoff)
 			continue
 		}
 
@@ -76,7 +70,7 @@ func ProcessMessage(
 	}
 }
 
-func getKafkaReader(args *KafkaArgs) *kafka.Reader {
+func getKafkaReader(args *KafkaConfig) *kafka.Reader {
 	return kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  []string{args.Url},
 		GroupID:  args.GroupId,
