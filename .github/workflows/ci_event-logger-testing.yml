@@ -18,6 +18,6 @@ jobs:
       - name: Display Go version
         working-directory: ./event-logger
         run: go version
-      - name: Run tests
-        working-directory: ./event-logger
+      - name: Run producer tests
+        working-directory: ./event-logger/producer
         run: go test
