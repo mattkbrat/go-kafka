@@ -1,0 +1,10 @@
+{
+  "kafka": {
+    "route": "localhost:9092",
+    "topic": "events",
+    "group": "event-logger",
+    "partition": 0
+  },
+  "datasetId": "toy_events",
+  "tableId": "events"
+}

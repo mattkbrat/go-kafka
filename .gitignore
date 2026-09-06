@@ -1,0 +1,5 @@
+**/**/tmp
+.env.keys
+
+/event-logger/consumer/event-consumer
+/event-logger/producer/event-logger
