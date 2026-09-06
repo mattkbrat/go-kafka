@@ -20,11 +20,13 @@ func main() {
 		log.Fatal("Must provide GOOGLE_APPLICATION_CREDENTIALS_FILE and CONFIG_FILE env variables")
 	}
 
-	gcp := ReadGcpConfig(gcpCredentialFile)
-	config := ReadConfig(configFile)
+	config := ReadConfig(&ConfigParams{
+		Config: configFile,
+		Gcp:    gcpCredentialFile,
+	})
 
-	log.Printf("Working with GCP project %s", gcp.ProjectId)
+	log.Printf("Working with GCP project %s", config.Gcp.ProjectId)
 
 	s := status.New()
-	ProcessMessage(ctx, s, &config.Kafka)
+	ProcessMessage(ctx, s, &config)
 }

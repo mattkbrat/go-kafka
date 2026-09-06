@@ -9,7 +9,7 @@ import (
 var KafkaRoute = "localhost:9092"
 var KafkaPartition = 0
 
-type Gcp struct {
+type GcpConfig struct {
 	ProviderCertUrl string `json:"auth_provider_x509_cert_url"`
 	AuthUri         string `json:"auth_uri"`
 	ClientEmail     string `json:"client_email"`
@@ -31,16 +31,24 @@ type KafkaConfig struct {
 }
 
 type Config struct {
-	Kafka KafkaConfig `json:"kafka"`
+	Kafka     KafkaConfig `json:"kafka"`
+	Gcp       GcpConfig
+	DatasetId string `json:"datasetId"`
+	TableId   string `json:"tableId"`
 }
 
-func ReadGcpConfig(file string) Gcp {
+type ConfigParams struct {
+	Gcp    string
+	Config string
+}
+
+func readGcpConfig(file string) GcpConfig {
 	configFile, err := os.Open(file)
 	if err != nil {
 		log.Fatalf("failed to read config file %s", err.Error())
 	}
 
-	gcp := Gcp{}
+	gcp := GcpConfig{}
 	jsonParser := json.NewDecoder(configFile)
 	if err = jsonParser.Decode(&gcp); err != nil {
 		log.Fatalf("failed to parse config file %s", err.Error())
@@ -49,8 +57,8 @@ func ReadGcpConfig(file string) Gcp {
 	return gcp
 }
 
-func ReadConfig(file string) Config {
-	configFile, err := os.Open(file)
+func ReadConfig(params *ConfigParams) Config {
+	configFile, err := os.Open(params.Config)
 	if err != nil {
 		log.Fatalf("failed to read config file %s", err.Error())
 	}
@@ -61,5 +69,12 @@ func ReadConfig(file string) Config {
 		log.Fatalf("failed to parse config file %s", err.Error())
 	}
 
-	return config
+	gcp := readGcpConfig(params.Gcp)
+
+	return Config{
+		Kafka:     config.Kafka,
+		Gcp:       gcp,
+		DatasetId: config.DatasetId,
+		TableId:   config.TableId,
+	}
 }

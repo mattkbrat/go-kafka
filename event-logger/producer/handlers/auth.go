@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"event-logger/internal/data"
 	"event-logger/internal/lib"
+	"event-logger/internal/types"
 	"fmt"
 	"net/http"
 	"time"
@@ -104,16 +106,31 @@ func (h *Handler) Register(c *echo.Context) error {
 	if err := AddUser(&user); err != nil {
 		m := err.Error()
 		if hasWriter {
+			event := types.Event{
+				EventID:   fmt.Sprintf("reg-%s", lib.RandStringRunes(6)),
+				EventType: "failed-register",
+				Message:   err.Error(),
+				TS:        time.Now(),
+				UserID:    user.Username,
+			}
+			b, _ := json.Marshal(event)
 			h.Writer.WriteMessages(kafka.Message{
-				Value: fmt.Appendf(nil, "Failed to register user %v", m),
+				Value: b,
 			})
 		}
 		return c.String(http.StatusUnprocessableEntity, m)
 	}
 
 	if hasWriter {
+		event := types.Event{
+			EventID:   fmt.Sprintf("reg-%s", lib.RandStringRunes(6)),
+			UserID:    user.Email,
+			EventType: "register",
+			TS:        time.Now(),
+		}
+		b, _ := json.Marshal(event)
 		h.Writer.WriteMessages(kafka.Message{
-			Value: fmt.Appendf(nil, "registered %s", user.Email),
+			Value: b,
 		})
 	}
 
@@ -130,8 +147,15 @@ func (h *Handler) Login(c *echo.Context) error {
 
 	if err := c.Bind(&signin); err != nil {
 		if hasWriter {
+			event := types.Event{
+				EventID:   fmt.Sprintf("aut-%s", lib.RandStringRunes(6)),
+				EventType: "failed-signin",
+				Message:   err.Error(),
+				TS:        time.Now(),
+			}
+			b, _ := json.Marshal(event)
 			h.Writer.WriteMessages(kafka.Message{
-				Value: fmt.Appendf(nil, "Failed to sign in user %v", err.Error()),
+				Value: b,
 			})
 		} else {
 			fmt.Printf("Failed to sign in user %v", err.Error())
@@ -142,8 +166,15 @@ func (h *Handler) Login(c *echo.Context) error {
 	err, u := FindUser(&signin)
 	if err != nil {
 		if hasWriter {
+			event := types.Event{
+				EventID:   fmt.Sprintf("aut-%s", lib.RandStringRunes(6)),
+				EventType: "failed-signin",
+				Message:   err.Error(),
+				TS:        time.Now(),
+			}
+			b, _ := json.Marshal(event)
 			h.Writer.WriteMessages(kafka.Message{
-				Value: fmt.Appendf(nil, "Failed to sign in user %v", err.Error()),
+				Value: b,
 			})
 		} else {
 			fmt.Printf("Failed to sign in user %v", err.Error())
@@ -158,8 +189,15 @@ func (h *Handler) Login(c *echo.Context) error {
 	cookie.Expires = time.Now().Add(24 * 30 * time.Hour)
 
 	if hasWriter {
+		event := types.Event{
+			EventID:   fmt.Sprintf("aut-%s", lib.RandStringRunes(6)),
+			EventType: "session",
+			UserID:    u.Username,
+			TS:        time.Now(),
+		}
+		b, _ := json.Marshal(event)
 		h.Writer.WriteMessages(kafka.Message{
-			Value: fmt.Appendf(nil, "New session for %s", u.Username),
+			Value: b,
 		})
 	}
 
